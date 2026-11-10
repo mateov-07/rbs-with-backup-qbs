@@ -5,7 +5,7 @@ CSE 163
 
 """
 import pandas as pd
-# import pprint  # Used so I can read the dictionaries easier
+from scipy import stats  # Used to run t-tests for research questions
 RB_COLUMNS = ['player_id', 'season', 'week', 'team', 'opponent_team',
               'game_id', 'carries', 'rushing_yards', 'rushing_tds',
               'rushing_fumbles_lost', 'rushing_first_downs', 'rushing_epa',
@@ -40,9 +40,10 @@ def load_weekly_stats():
 
 
 def get_starting_qbs(df, teams):
-    starting_qbs = {"CLE": {}, "WAS": {}, "NYG": {}, "NYJ": {}}
+    starting_qbs = {}
 
     for team in teams:
+        starting_qbs[team] = {}
         for season in range(5):
             year = season + 2021
             game = (df[(df['season'] == year) & (df['week'] == 1) &
@@ -93,10 +94,10 @@ def get_starter_rbs(rb_weekly_stats, teams):
         year = season + 2021
         for team in teams:
             rb_games = rb_weekly_stats[(rb_weekly_stats['season'] == year) &
-                                    (rb_weekly_stats['team'] == team)]
+                                       (rb_weekly_stats['team'] == team)]
             player_groups = rb_games.groupby(['player_id',
-                                            'player_display_name'],
-                                            as_index=False)
+                                              'player_display_name'],
+                                              as_index=False)
             total_carries = player_groups['carries'].sum()
             top_row = total_carries['carries'].idxmax()
             starting_rbs.append({
@@ -116,7 +117,8 @@ def get_starter_rb_games(rb_weekly_stats, starter_rbs):
 
 def get_combined_dataframe(df, teams):
     weekly = load_weekly_stats()
-    rb_weekly_stats = weekly[(weekly['position'] == 'RB') & (weekly['carries'] > 0)]
+    rb_weekly_stats = weekly[(weekly['position'] == 'RB') & 
+                             (weekly['carries'] > 0)]
 
     starter_qbs = get_starting_qbs(df, teams)
     qb_games = get_qb_games(df, teams, starter_qbs)
@@ -124,15 +126,33 @@ def get_combined_dataframe(df, teams):
     starter_rb_games = get_starter_rb_games(rb_weekly_stats, starter_rbs)
 
     combined = qb_games.merge(starter_rb_games, on=['season', 'week', 'team'])
-    combined.to_csv('test.csv', index=False)
+    # combined.to_csv('test.csv', index=False)
     return combined
 
 
 def research_question_one(df):
-    print("hi")
+    df['epa_per_rush'] = df['rushing_epa'] / df['carries']
+    starters = df[(~df['backup_qb']) & (df['carries'] >= 6)]
+    backups = df[(df['backup_qb']) & (df['carries'] >= 6)]
+    starter_epa = starters.groupby(['team', 'season'],
+                                   as_index=False)['epa_per_rush'].mean()
+    backup_epa = backups.groupby(['team', 'season'],
+                                 as_index=False)['epa_per_rush'].mean()
+    paired = starter_epa.merge(backup_epa, on=['team', 'season'],
+                            suffixes=('_starter', '_backup'))
+    result = stats.ttest_rel(paired['epa_per_rush_starter'],
+                             paired['epa_per_rush_backup'])
+    print(result.statistic, result.pvalue)
+    print(len(paired))
+    # starter_epa.to_csv('starters.csv')
+    # backup_epa.to_csv('backups.csv')
 
 
 df = read_csv_file('data/games.csv')
-teams = ['CLE', 'WAS', 'NYG', 'NYJ']
+teams = ['CLE', 'NYG', 'NYJ', 'WAS']
+#teams = ['ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE',
+#         'DAL', 'DEN', 'DET', 'GB', 'HOU', 'IND', 'JAX', 'KC', 
+#         'LV', 'LAC', 'LA', 'MIA', 'MIN', 'NE', 'NO', 'NYG', 
+#         'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB', 'TEN', 'WAS']
 combined_df = get_combined_dataframe(df, teams)
 research_question_one(combined_df)
