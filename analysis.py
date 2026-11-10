@@ -6,6 +6,12 @@ CSE 163
 """
 import pandas as pd
 # import pprint  # Used so I can read the dictionaries easier
+RB_COLUMNS = ['player_id', 'season', 'week', 'team', 'opponent_team',
+              'game_id', 'carries', 'rushing_yards', 'rushing_tds',
+              'rushing_fumbles_lost', 'rushing_first_downs', 'rushing_epa',
+              'targets', 'receptions', 'receiving_yards', 'receiving_tds',
+              'receiving_epa', 'target_share', 'fantasy_points',
+              'fantasy_points_ppr']
 
 
 def read_csv_file(file_path):
@@ -18,6 +24,19 @@ def read_csv_file(file_path):
         return pd.read_csv(file_path, dtype={col: str for col in list_columns})
 
     return pd.read_csv(file_path)
+
+
+def load_weekly_stats():
+    seasons = []
+
+    for season in range(5):
+        year = season + 2021
+        df = read_csv_file('data/weekly-player-stats/' +
+                           f'stats_player_week_{year}.csv')
+        seasons.append(df)
+
+    mask = pd.concat(seasons, ignore_index=True)
+    return mask[mask['week'] <= 18]
 
 
 def get_starting_qbs(df, teams):
@@ -39,14 +58,14 @@ def get_starting_qbs(df, teams):
 
 def get_qb_games(df, teams, starting_qbs):
     qb_games = []
+    filtered_df = df[['season', 'week', 'home_team', 'away_team',
+                      'home_qb_name', 'away_qb_name']]
 
     for team in teams:
         for season in range(5):
             year = season + 2021
             season_starter = starting_qbs[team][year]
             for week in range(1, 19):
-                filtered_df = df[['season', 'week', 'home_team', 'away_team',
-                                  'home_qb_name', 'away_qb_name']]
                 game = (filtered_df[(filtered_df['season'] == year) &
                         (filtered_df['week'] == week) &
                         ((filtered_df['home_team'] == team) |
@@ -67,23 +86,17 @@ def get_qb_games(df, teams, starting_qbs):
     return pd.DataFrame(qb_games)
 
 
-def get_starter_rbs(teams):
+def get_starter_rbs(rb_weekly_stats, teams):
     starting_rbs = []
 
     for season in range(5):
         year = season + 2021
-        df = read_csv_file('data/weekly-player-stats/' +
-                           f'stats_player_week_{year}.csv')
-        filtered_df = df[['player_id', 'player_display_name', 'position',
-                          'season', 'week', 'team', 'carries']]
         for team in teams:
-            rb_games = (filtered_df[(filtered_df['position'] == 'RB') &
-                        (filtered_df['week'] <= 18) &
-                        (filtered_df['team'] == team) &
-                        (filtered_df['carries'] > 0)])
+            rb_games = rb_weekly_stats[(rb_weekly_stats['season'] == year) &
+                                    (rb_weekly_stats['team'] == team)]
             player_groups = rb_games.groupby(['player_id',
-                                             'player_display_name'],
-                                             as_index=False)
+                                            'player_display_name'],
+                                            as_index=False)
             total_carries = player_groups['carries'].sum()
             top_row = total_carries['carries'].idxmax()
             starting_rbs.append({
@@ -96,31 +109,27 @@ def get_starter_rbs(teams):
     return pd.DataFrame(starting_rbs)
 
 
-def get_starter_rb_games(starter_rbs):
-    seasons = []
-
-    for season in range(5):
-        year = season + 2021
-        df = read_csv_file('data/weekly-player-stats/' +
-                           f'stats_player_week_{year}.csv')
-        seasons.append(df)
-    weekly = pd.concat(seasons, ignore_index=True)
-    mask = weekly[(weekly['week'] <= 18) & (weekly['carries'] > 0)]
-    return mask.merge(starter_rbs, on=['season', 'team', 'player_id'])
+def get_starter_rb_games(rb_weekly_stats, starter_rbs):
+    return rb_weekly_stats[RB_COLUMNS].merge(starter_rbs,
+                                       on=['season', 'team', 'player_id'])
 
 
 def get_combined_dataframe(df, teams):
+    weekly = load_weekly_stats()
+    rb_weekly_stats = weekly[(weekly['position'] == 'RB') & (weekly['carries'] > 0)]
+
     starter_qbs = get_starting_qbs(df, teams)
     qb_games = get_qb_games(df, teams, starter_qbs)
-    starter_rbs = get_starter_rbs(teams)
-    starter_rb_games = get_starter_rb_games(starter_rbs)
-    combined = qb_games.merge(starter_rb_games, on=['season', 'team', 'team'])
-    #combined.to_csv('test.csv', index=False)
+    starter_rbs = get_starter_rbs(rb_weekly_stats, teams)
+    starter_rb_games = get_starter_rb_games(rb_weekly_stats, starter_rbs)
+
+    combined = qb_games.merge(starter_rb_games, on=['season', 'week', 'team'])
+    combined.to_csv('test.csv', index=False)
+    return combined
 
 
 def research_question_one(df):
     print("hi")
-    
 
 
 df = read_csv_file('data/games.csv')
