@@ -6,6 +6,8 @@ CSE 163
 """
 import pandas as pd
 from scipy import stats  # Used to run t-tests for research questions
+import matplotlib.pyplot as plt
+import seaborn as sns
 RB_COLUMNS = ['player_id', 'season', 'week', 'team', 'opponent_team',
               'game_id', 'carries', 'rushing_yards', 'rushing_tds',
               'rushing_fumbles_lost', 'rushing_first_downs', 'rushing_epa',
@@ -138,21 +140,28 @@ def research_question_one(df):
                                    as_index=False)['epa_per_rush'].mean()
     backup_epa = backups.groupby(['team', 'season'],
                                  as_index=False)['epa_per_rush'].mean()
+    
     paired = starter_epa.merge(backup_epa, on=['team', 'season'],
                             suffixes=('_starter', '_backup'))
-    result = stats.ttest_rel(paired['epa_per_rush_starter'],
+    ttest_result = stats.ttest_rel(paired['epa_per_rush_starter'],
                              paired['epa_per_rush_backup'])
-    print(result.statistic, result.pvalue)
-    print(len(paired))
-    # starter_epa.to_csv('starters.csv')
-    # backup_epa.to_csv('backups.csv')
+    starter_epa_mean = paired['epa_per_rush_starter'].mean()
+    backup_epa_mean = paired['epa_per_rush_backup'].mean()
+    # print(ttest_result.statistic, ttest_result.pvalue)
+
+    sns.relplot(data=paired, x='epa_per_rush_starter',
+                y='epa_per_rush_backup', hue='team')
+    plt.title('Starter QBs vs Backup QBs: RB EPA per rush')
+    plt.xlabel('RB EPA per rush with starting QB')
+    plt.ylabel('RB EPA per rush with backup QB')
+    plt.savefig('rq1_paired.png', bbox_inches='tight')
 
 
 df = read_csv_file('data/games.csv')
 teams = ['CLE', 'NYG', 'NYJ', 'WAS']
-#teams = ['ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE',
-#         'DAL', 'DEN', 'DET', 'GB', 'HOU', 'IND', 'JAX', 'KC', 
-#         'LV', 'LAC', 'LA', 'MIA', 'MIN', 'NE', 'NO', 'NYG', 
-#         'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB', 'TEN', 'WAS']
+# teams = ['ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE',
+#          'DAL', 'DEN', 'DET', 'GB', 'HOU', 'IND', 'JAX', 'KC', 
+#          'LV', 'LAC', 'LA', 'MIA', 'MIN', 'NE', 'NO', 'NYG', 
+#          'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB', 'TEN', 'WAS']
 combined_df = get_combined_dataframe(df, teams)
 research_question_one(combined_df)
