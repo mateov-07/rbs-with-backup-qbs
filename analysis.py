@@ -127,7 +127,13 @@ def get_combined_dataframe(df, teams):
     starter_rbs = get_starter_rbs(rb_weekly_stats, teams)
     starter_rb_games = get_starter_rb_games(rb_weekly_stats, starter_rbs)
 
+    team_groups = weekly.groupby(['season', 'week', 'team'], as_index=False)
+    team_totals = team_groups[['carries', 'receptions']].sum()
+
     combined = qb_games.merge(starter_rb_games, on=['season', 'week', 'team'])
+    combined = combined.merge(team_totals, on=['season', 'week', 'team'],
+                              suffixes=('', '_team'))
+    
     # combined.to_csv('test.csv', index=False)
     return combined
 
@@ -154,8 +160,38 @@ def research_question_one(df):
     plt.title('Starter QBs vs Backup QBs: RB EPA per rush')
     plt.xlabel('RB EPA per rush with starting QB')
     plt.ylabel('RB EPA per rush with backup QB')
-    plt.savefig('rq1_paired.png', bbox_inches='tight')
+    plt.savefig('rq1.png', bbox_inches='tight')
 
+
+def research_question_two(df):
+    df['touches'] = df['carries'] + df['receptions']
+    df['team_touches'] = df['carries_team'] + df['receptions_team']
+    df['touch_percentage'] = df['touches'] / df['team_touches'] * 100
+
+    metrics = ['carries', 'touch_percentage', 'fantasy_points_ppr']
+    labels = {'carries': 'Carries per game',
+              'touch_percentage': 'Team touch percentage',
+              'fantasy_points_ppr': 'Fantasy PPR points per game'}
+    
+    groups = df.groupby(['team', 'season', 'backup_qb'],
+                        as_index=False)[metrics].mean()
+    starter_avgs = groups[~groups['backup_qb']]
+    backup_avgs = groups[groups['backup_qb']]
+    paired = starter_avgs.merge(backup_avgs, on=['team', 'season'],
+                                 suffixes=('_starter', '_backup'))
+    groups['qb_role'] = 'Starter QB'
+    groups.loc[groups['backup_qb'], 'qb_role'] = 'Backup QB'
+
+    for metric in metrics:
+        ttest_result = stats.ttest_rel(paired[metric + '_starter'],
+                                       paired[metric + '_backup'])
+        #print(labels[metric], ttest_result.statistic, ttest_result.pvalue)
+
+        sns.catplot(data=groups, x='qb_role', y=metric, kind='box')
+        plt.title(f'Starting RB {labels[metric].lower()} by QB Role')
+        plt.xlabel('QB Role')
+        plt.ylabel(labels[metric])
+        plt.savefig(f'rq2_{metric}.png', bbox_inches='tight')
 
 df = read_csv_file('data/games.csv')
 teams = ['CLE', 'NYG', 'NYJ', 'WAS']
@@ -165,3 +201,4 @@ teams = ['CLE', 'NYG', 'NYJ', 'WAS']
 #          'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB', 'TEN', 'WAS']
 combined_df = get_combined_dataframe(df, teams)
 research_question_one(combined_df)
+research_question_two(combined_df)
