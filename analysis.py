@@ -127,12 +127,23 @@ def get_combined_dataframe(df, teams):
     starter_rbs = get_starter_rbs(rb_weekly_stats, teams)
     starter_rb_games = get_starter_rb_games(rb_weekly_stats, starter_rbs)
 
+    rushing = weekly[weekly['position'] == 'RB']
+    defenses = rushing.groupby(['season', 'opponent_team'],
+                               as_index=False)
+    
+    run_defense = defenses[['rushing_epa', 'carries']].sum()
+    epa_allowed = run_defense['rushing_epa']
+    carries_allowed = run_defense['carries']
+    run_defense['opp_epa_allowed'] = epa_allowed / carries_allowed
+    run_defense = run_defense[['season', 'opponent_team', 'opp_epa_allowed']]
+
     team_groups = weekly.groupby(['season', 'week', 'team'], as_index=False)
     team_totals = team_groups[['carries', 'receptions']].sum()
 
     combined = qb_games.merge(starter_rb_games, on=['season', 'week', 'team'])
     combined = combined.merge(team_totals, on=['season', 'week', 'team'],
                               suffixes=('', '_team'))
+    combined = combined.merge(run_defense, on=['season', 'opponent_team'])
     
     # combined.to_csv('test.csv', index=False)
     return combined
@@ -185,13 +196,48 @@ def research_question_two(df):
     for metric in metrics:
         ttest_result = stats.ttest_rel(paired[metric + '_starter'],
                                        paired[metric + '_backup'])
-        #print(labels[metric], ttest_result.statistic, ttest_result.pvalue)
+        print(labels[metric], ttest_result.statistic, ttest_result.pvalue)
 
         sns.catplot(data=groups, x='qb_role', y=metric, kind='box')
         plt.title(f'Starting RB {labels[metric].lower()} by QB Role')
         plt.xlabel('QB Role')
         plt.ylabel(labels[metric])
         plt.savefig(f'rq2_{metric}.png', bbox_inches='tight')
+
+
+def research_question_three(df):
+    df['epa_per_rush'] = df['rushing_epa'] / df['carries']
+    df['adjusted_epa'] = df['epa_per_rush'] - df['opp_epa_allowed']
+    min_carries = df[df['carries'] >= 6].copy()
+
+    metrics = ['epa_per_rush', 'adjusted_epa', 'opp_epa_allowed']
+    labels = {'epa_per_rush': 'Raw EPA per rush',
+              'adjusted_epa': 'Opponent-adjusted EPA per rush',
+              'opp_epa_allowed': 'Opponent EPA allowed per rush'}
+    
+    groups = min_carries.groupby(['team', 'season', 'backup_qb'],
+                                 as_index=False)[metrics].mean()
+    starter_avgs = groups[~groups['backup_qb']]
+    backup_avgs = groups[groups['backup_qb']]
+    paired = starter_avgs.merge(backup_avgs, on=['team', 'season'],
+                                suffixes=('_starter', '_backup'))
+    
+    for metric in metrics:
+        ttest_result = stats.ttest_rel(paired[metric + '_starter'],
+                                       paired[metric + '_backup'])
+        print(labels[metric], '-', ttest_result.statistic, 
+              ttest_result.pvalue)
+    
+    min_carries['qb_role'] = 'Starter QB'
+    min_carries.loc[min_carries['backup_qb'], 'qb_role'] = 'Backup QB'
+
+    sns.lmplot(data=min_carries, x='opp_epa_allowed', y='epa_per_rush',
+               hue='qb_role')
+    plt.title('Starting RB EPA per rush vs. opponent run defense')
+    plt.xlabel('Opponent EPA allowed per rush')
+    plt.ylabel('Starting RB EPA per rush')
+    plt.savefig('rq3.png', bbox_inches='tight')
+
 
 df = read_csv_file('data/games.csv')
 teams = ['CLE', 'NYG', 'NYJ', 'WAS']
@@ -202,3 +248,4 @@ teams = ['CLE', 'NYG', 'NYJ', 'WAS']
 combined_df = get_combined_dataframe(df, teams)
 research_question_one(combined_df)
 research_question_two(combined_df)
+research_question_three(combined_df)
