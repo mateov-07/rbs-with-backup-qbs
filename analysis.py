@@ -11,15 +11,19 @@ output through run defense metrics and general comparisons.
 
 """
 import pandas as pd
-from scipy import stats  # Used to run t-tests for research questions
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy import stats  # Used to run t-tests for research questions
 RB_COLUMNS = ['player_id', 'season', 'week', 'team', 'opponent_team',
               'game_id', 'carries', 'rushing_yards', 'rushing_tds',
               'rushing_fumbles_lost', 'rushing_first_downs', 'rushing_epa',
               'targets', 'receptions', 'receiving_yards', 'receiving_tds',
               'receiving_epa', 'target_share', 'fantasy_points',
               'fantasy_points_ppr']
+TEAMS = ['ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE',
+         'DAL', 'DEN', 'DET', 'GB', 'HOU', 'IND', 'JAX', 'KC',
+         'LV', 'LAC', 'LA', 'MIA', 'MIN', 'NE', 'NO', 'NYG',
+         'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB', 'TEN', 'WAS']
 
 
 def read_csv_file(file_path: str) -> pd.DataFrame:
@@ -310,11 +314,7 @@ def research_question_three(df: pd.DataFrame) -> None:
 
 def main():
     df = read_csv_file('data/games.csv')
-    teams = ['ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE',
-             'DAL', 'DEN', 'DET', 'GB', 'HOU', 'IND', 'JAX', 'KC',
-             'LV', 'LAC', 'LA', 'MIA', 'MIN', 'NE', 'NO', 'NYG',
-             'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB', 'TEN', 'WAS']
-    combined_df = get_combined_dataframe(df, teams)
+    combined_df = get_combined_dataframe(df, TEAMS)
     print("Research question 1:")
     research_question_one(combined_df)
     print()
