@@ -228,7 +228,7 @@ def research_question_one(df: pd.DataFrame) -> None:
     plt.scatter(starter_epa_mean, backup_epa_mean, color='black')
     plt.annotate('Average', (starter_epa_mean, backup_epa_mean),
                  xytext=(-20, 8), textcoords='offset points')
-    plt.savefig('rq1.png', bbox_inches='tight')
+    plt.savefig('rq-imgs/rq1.png', bbox_inches='tight')
 
 
 def research_question_two(df: pd.DataFrame) -> None:
@@ -267,7 +267,7 @@ def research_question_two(df: pd.DataFrame) -> None:
         plt.title(f'Starting RB {labels[metric]} by QB Role')
         plt.xlabel('QB Role')
         plt.ylabel(labels[metric])
-        plt.savefig(f'rq2_{metric}.png', bbox_inches='tight')
+        plt.savefig(f'rq-imgs/rq2_{metric}.png', bbox_inches='tight')
 
 
 def research_question_three(df: pd.DataFrame) -> None:
@@ -309,7 +309,7 @@ def research_question_three(df: pd.DataFrame) -> None:
     plt.title('Starting RB EPA per rush vs. opponent run defense')
     plt.xlabel('Opponent EPA allowed per rush')
     plt.ylabel('Starting RB EPA per rush')
-    plt.savefig('rq3.png', bbox_inches='tight')
+    plt.savefig('rq-imgs/rq3.png', bbox_inches='tight')
 
 
 def main():
