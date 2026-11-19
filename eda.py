@@ -2,13 +2,13 @@
 Mateo Villalobos
 CSE 163
 
-Exploratory data analysis for analysis.py. All of the information here
-is used within the EDA Results section of the writeup.
+File that does Exploratory Data Analysis for analysis.py. All of the
+information here is used within the EDA Results section of the writeup.
 """
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy import stats  # Used to run t-tests for research questions
+from scipy import stats  # Used to run skews for research questions
 
 import analysis
 
@@ -28,6 +28,10 @@ COMBINED_VARIABLES = ['carries', 'rushing_yards', 'rushing_epa',
 
 
 def missing_summary(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Takes a dataframe and returns a database with the number and percent
+    of missing values for every column without a missing value.
+    """
     counts = df.isna().sum()
     counts = counts[counts > 0]
     percents = (counts / len(df) * 100).round(1)
@@ -39,10 +43,19 @@ def missing_summary(df: pd.DataFrame) -> pd.DataFrame:
 
 def seven_number_summary(df: pd.DataFrame,
                          columns: list[str]) -> pd.DataFrame:
-    return df[columns].describe().T[SUMMARIES].round(3)
+    """
+    Takes a dataframe and a list of quantitative columns for said dataframe
+    and returns the mean, standard deviation, minimum, first and third
+    quartiles, and the maximum of the given columns.
+    """
+    return df[columns].describe().T[SUMMARIES].round(2)
 
 
 def add_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Takes a dataframe and returns a copy with research question variables
+    to be used to analyze said research questions and variables.
+    """
     df = df.copy()
     df['epa_per_rush'] = df['rushing_epa'] / df['carries']
     touches = df['carries'] + df['receptions']
@@ -56,6 +69,12 @@ def add_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_paired_differences(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Takes a dataframe and returns a dataframe with with a row per team
+    season and research question to view research question metrics via a
+    global minimum carry count, as well as keeping team seasons with only
+    starter and backup QB games.
+    """
     differences = []
 
     for metric in RQ_METRICS:
@@ -78,6 +97,13 @@ def get_paired_differences(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def weekly_eda(weekly: pd.DataFrame, starter_rbs: pd.DataFrame) -> None:
+    """
+    Takes a stacked weekly player stats and a dataframe of each team's
+    starting RB per season, and prints the size, missing data, seven
+    number summaries, and positional counts of the weekly stats. Also
+    creates two graphs: a histogram of RB carries per game and a box plot
+    of opponent run defense ratings by season (used for EDA Results).
+    """
     print('Weekly stats shape (rows, columns):', weekly.shape)
     print()
 
@@ -120,6 +146,7 @@ def weekly_eda(weekly: pd.DataFrame, starter_rbs: pd.DataFrame) -> None:
     print(starters['rb_type'].value_counts().to_string())
     print()
 
+    # plt.figure creates an empty canvas with a given figsize
     plt.figure(figsize=(7, 4))
     # histplot used to create histogram for readability
     ax = sns.histplot(data=starters, x='carries', hue='rb_type',
@@ -127,13 +154,12 @@ def weekly_eda(weekly: pd.DataFrame, starter_rbs: pd.DataFrame) -> None:
                       hue_order=['Other RBs', 'Starting RB'],
                       palette={'Starting RB': '#2a78d6',
                                'Other RBs': '#9a9893'})
-    # plt.ylim sets y-axis range to 0-500
-    plt.text(6.4, plt.ylim()[1] * 0.92, '6-carry minimum', fontsize=9)
     # move_legend moves legend to given position without title
     sns.move_legend(ax, 'upper right', title=None)
     plt.title('RB carries per game, 2021-2025 regular seasons')
     plt.xlabel('Carries in the game')
     plt.ylabel('Number of RB games')
+    # Use 200 DPI for better quality images
     plt.savefig('eda-imgs/eda_rb_carries.png', bbox_inches='tight', dpi=200)
     # Closes plt so I can make a completely new graph later in weekly_eda
     plt.close()
@@ -160,6 +186,12 @@ def weekly_eda(weekly: pd.DataFrame, starter_rbs: pd.DataFrame) -> None:
 
 
 def combined_eda(combined: pd.DataFrame) -> None:
+    """
+    Takes a dataframe and prints its size, missing data, seven number
+    summaries, and backup_qb and season counts. Also creates two graphs: a
+    bar chart of starting RB games by season and QB role, and a histogram
+    of EPA per rush by QB role.
+    """
     print('Combined shape (rows, columns):', combined.shape)
     print()
 
@@ -186,10 +218,12 @@ def combined_eda(combined: pd.DataFrame) -> None:
     print(min_carries['qb_role'].value_counts().to_string())
 
     plt.figure(figsize=(7, 4))
+    # Countplot is used to count every occurance of each QB role per season
     ax = sns.countplot(data=combined, x='season', hue='qb_role',
                        hue_order=['Starter QB', 'Backup QB'],
                        palette={'Starter QB': '#2a78d6',
                                 'Backup QB': '#eb6834'})
+    # plt.ylim sets the y-axis so the graph is not poorly constructed
     plt.ylim(0, 500)
     plt.title('Starting RB games by season and QB role')
     plt.xlabel('Season')
@@ -199,6 +233,9 @@ def combined_eda(combined: pd.DataFrame) -> None:
     plt.close()
 
     plt.figure(figsize=(7, 4))
+    # common_norm used for independent normalization, element makes the outline
+    # stepped for easier overlapping comparison, binwidth changes sizes of the
+    # histogram steps
     ax = sns.histplot(data=min_carries, x='epa_per_rush', hue='qb_role',
                       hue_order=['Starter QB', 'Backup QB'],
                       palette={'Starter QB': '#2a78d6',
@@ -217,21 +254,10 @@ def check_assumptions(combined: pd.DataFrame) -> None:
     pairs = differences[['team', 'season']].drop_duplicates()
     print('Team-seasons with both QB roles:', len(pairs))
 
-    fig, axes = plt.subplots(2, 3, figsize=(11, 6))
-    for ax, (metric, label) in zip(axes.flat, RQ_METRICS.items()):
+    for metric, label in RQ_METRICS.items():
         diff = differences[differences['metric'] == metric]['difference']
         print(label, '| n =', len(diff),
               '| skew =', round(stats.skew(diff), 2))
-        sns.histplot(diff, ax=ax, color='#2a78d6', bins=15)
-        ax.set_title(label, fontsize=10)
-        ax.set_xlabel('Starter minus backup')
-        ax.set_ylabel('Team-seasons')
-    # Main title above all six graphs
-    fig.suptitle('Paired differences (starter QB games minus backup QB games)')
-    # Makes labels be able to fit and become readable in the small graphs
-    fig.tight_layout()
-    fig.savefig('eda-imgs/eda_paired_differences.png',
-                bbox_inches='tight', dpi=200)
 
 
 def main():

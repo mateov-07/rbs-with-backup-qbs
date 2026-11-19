@@ -1,0 +1,14 @@
+player_id,player_display_name,season,week,team,carries,opponent_team,game_id,rushing_yards,rushing_tds,rushing_fumbles_lost,rushing_first_downs,rushing_epa,targets,receptions,receiving_yards,receiving_tds,receiving_epa,target_share,fantasy_points,fantasy_points_ppr
+tm1_rb1,Team 1 RB1,2021,1,TM1,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm1_rb1,Team 1 RB1,2021,3,TM1,12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm1_rb2,Team 1 RB2,2021,2,TM1,15,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm1_rb2,Team 1 RB2,2021,3,TM2,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm2_rb1,Team 2 RB1,2021,1,TM2,18,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm1_rb1,Team 1 RB1,2022,1,TM1,14,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm2_rb1,Team 2 RB1,2022,1,TM2,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm1_rb1,Team 1 RB1,2023,1,TM1,14,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm2_rb1,Team 2 RB1,2023,1,TM2,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm1_rb1,Team 1 RB1,2024,1,TM1,14,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm2_rb1,Team 2 RB1,2024,1,TM2,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm1_rb1,Team 1 RB1,2025,1,TM1,14,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+tm2_rb1,Team 2 RB1,2025,1,TM2,16,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

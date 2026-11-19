@@ -8,12 +8,12 @@ running back. Combines dataframe schedule and weekly player stats for the
 2021-2025 regular season. Labels each team's QB as either the week 1 starter
 or the season backup. Compares RB rushing efficiency, workload, and fantasy
 output through run defense metrics and general comparisons.
-
 """
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats  # Used to run t-tests for research questions
+
 RB_COLUMNS = ['player_id', 'season', 'week', 'team', 'opponent_team',
               'game_id', 'carries', 'rushing_yards', 'rushing_tds',
               'rushing_fumbles_lost', 'rushing_first_downs', 'rushing_epa',
